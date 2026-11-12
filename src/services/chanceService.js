@@ -14,6 +14,17 @@ function permutaciones(numero) {
   return resultado;
 }
 
+/**
+ * @function validarApuesta
+ * @description Valida y normaliza una apuesta de chance. Verifica el formato del
+ * numero (1 a 4 digitos), la modalidad (DIRECTO o COMBINADO), las restricciones de
+ * la modalidad combinada y el rango del valor apostado, incluyendo que sea multiplo
+ * de 100. Retorna la apuesta con las cifras calculadas.
+ * @param {{ numero?: string, modalidad?: 'DIRECTO'|'COMBINADO', valor?: number }} apuesta - Apuesta recibida en el cuerpo de la peticion.
+ * @returns {{ numero: string, cifras: number, modalidad: 'DIRECTO'|'COMBINADO', valor: number }} Apuesta validada y normalizada.
+ * @throws {AppError} Codigo 400 si el numero no tiene entre 1 y 4 digitos, la modalidad es invalida,
+ * el valor esta fuera del rango permitido o no es multiplo de 100.
+ */
 function validarApuesta(apuesta) {
   const { numero, modalidad = 'DIRECTO', valor } = apuesta || {};
 
@@ -39,6 +50,16 @@ function validarApuesta(apuesta) {
   return { numero, cifras: numero.length, modalidad, valor };
 }
 
+/**
+ * @function calcularPremio
+ * @description Calcula el premio de una apuesta de chance comparando el numero
+ * apostado con las ultimas cifras del resultado oficial. En modalidad DIRECTO el
+ * premio se multiplica por la tabla de pagos; en modalidad COMBINADO se consideran
+ * todas las permutaciones del numero y el premio se divide entre ellas.
+ * @param {{ numero: string, cifras: number, modalidad: 'DIRECTO'|'COMBINADO', valor: number }} apuesta - Apuesta previamente validada.
+ * @param {string} resultado - Resultado oficial del sorteo, cadena de exactamente 4 digitos.
+ * @returns {number} Valor del premio en pesos colombianos; `0` si no hay acierto.
+ */
 function calcularPremio(apuesta, resultado) {
   const ganador = resultado.slice(-apuesta.cifras);
   const factor = TABLA_PAGOS[apuesta.cifras];
@@ -52,6 +73,14 @@ function calcularPremio(apuesta, resultado) {
   return Math.floor((apuesta.valor * factor) / combinaciones.size);
 }
 
+/**
+ * @function validarResultado
+ * @description Valida que el resultado oficial de un sorteo de chance sea una
+ * cadena de exactamente 4 digitos.
+ * @param {string} resultado - Resultado ingresado por el administrador.
+ * @returns {string} El mismo resultado validado.
+ * @throws {AppError} Codigo 400 si el resultado no es una cadena de 4 digitos.
+ */
 function validarResultado(resultado) {
   if (typeof resultado !== 'string' || !/^\d{4}$/.test(resultado)) {
     throw new AppError('El resultado de chance debe ser un número de 4 dígitos');

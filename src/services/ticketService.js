@@ -17,6 +17,18 @@ function guardar(ticket) {
   return ticket;
 }
 
+/**
+ * @function venderChance
+ * @description Registra la venta de un tiquete de chance. Verifica que el sorteo
+ * exista y admita ventas, valida entre 1 y 5 apuestas, calcula el total y genera un
+ * codigo unico con prefijo `CH-`.
+ * @param {{ id: number, rol: string }} vendedor - Usuario autenticado que realiza la venta.
+ * @param {{ sorteoId: number|string, apuestas: Array<{ numero: string, modalidad?: 'DIRECTO'|'COMBINADO', valor: number }>, cliente?: string|null }} datos - Datos del tiquete recibidos en la peticion.
+ * @returns {{ id: number, codigo: string, tipo: string, sorteoId: number, vendedorId: number, cliente: string|null, apuestas: Array<object>, total: number, estado: string, premio: null, creadoEn: string }} Tiquete creado en estado ACTIVO.
+ * @throws {AppError} Codigo 404 si el sorteo no existe.
+ * @throws {AppError} Codigo 400 si el sorteo no es de tipo CHANCE o las apuestas son invalidas.
+ * @throws {AppError} Codigo 409 si el sorteo no esta abierto o las ventas ya cerraron.
+ */
 function venderChance(vendedor, { sorteoId, apuestas, cliente }) {
   const sorteo = sorteos.obtener(sorteoId);
   sorteos.verificarVentaPermitida(sorteo, 'CHANCE');
@@ -41,6 +53,18 @@ function venderChance(vendedor, { sorteoId, apuestas, cliente }) {
   });
 }
 
+/**
+ * @function venderBaloto
+ * @description Registra la venta de un tiquete de Baloto. Verifica que el sorteo
+ * exista y admita ventas, valida entre 1 y 10 jugadas (manuales o aleatorias),
+ * calcula el total segun `VALOR_BALOTO` y genera un codigo unico con prefijo `BL-`.
+ * @param {{ id: number, rol: string }} vendedor - Usuario autenticado que realiza la venta.
+ * @param {{ sorteoId: number|string, jugadas: Array<{ aleatoria?: boolean, numeros?: number[], superbalota?: number }>, cliente?: string|null }} datos - Datos del tiquete recibidos en la peticion.
+ * @returns {{ id: number, codigo: string, tipo: string, sorteoId: number, vendedorId: number, cliente: string|null, jugadas: Array<object>, total: number, estado: string, premio: null, creadoEn: string }} Tiquete creado en estado ACTIVO.
+ * @throws {AppError} Codigo 404 si el sorteo no existe.
+ * @throws {AppError} Codigo 400 si el sorteo no es de tipo BALOTO o las jugadas son invalidas.
+ * @throws {AppError} Codigo 409 si el sorteo no esta abierto o las ventas ya cerraron.
+ */
 function venderBaloto(vendedor, { sorteoId, jugadas, cliente }) {
   const sorteo = sorteos.obtener(sorteoId);
   sorteos.verificarVentaPermitida(sorteo, 'BALOTO');
@@ -71,6 +95,15 @@ function buscar(codigo) {
   return ticket;
 }
 
+/**
+ * @function listar
+ * @description Lista los tiquetes visibles para el usuario autenticado. Un ADMIN
+ * puede ver todos los tiquetes; un VENDEDOR solo los propios. Permite filtrar por
+ * estado y por fecha (prefijo ISO `YYYY-MM-DD` sobre la fecha de creacion).
+ * @param {{ id: number, rol: string }} usuario - Usuario autenticado.
+ * @param {{ fecha?: string, estado?: string }} [filtros] - Filtros opcionales de la consulta.
+ * @returns {Array<object>} Tiquetes que cumplen los filtros.
+ */
 function listar(usuario, { fecha, estado } = {}) {
   return getDb().tickets.filter((t) =>
     (usuario.rol === 'ADMIN' || t.vendedorId === usuario.id) &&
@@ -78,6 +111,14 @@ function listar(usuario, { fecha, estado } = {}) {
     (!fecha || t.creadoEn.startsWith(fecha)));
 }
 
+/**
+ * @function consultar
+ * @description Recupera un tiquete por su codigo e incluye un resumen del sorteo
+ * asociado. Si el sorteo ya fue jugado, indica si el tiquete resulto ganador.
+ * @param {string} codigo - Codigo unico del tiquete (por ejemplo, `CH-A1B2C3D4`).
+ * @returns {object} Tiquete con las propiedades `sorteo` y `ganador` agregadas.
+ * @throws {AppError} Codigo 404 si el tiquete no existe.
+ */
 function consultar(codigo) {
   const ticket = buscar(codigo);
   const sorteo = sorteos.obtener(ticket.sorteoId);
@@ -88,6 +129,22 @@ function consultar(codigo) {
   };
 }
 
+/**
+ * @function anular
+ * @description Anula un tiquete ACTIVO aplicando las politicas del negocio: un
+ * VENDEDOR solo puede anular tiquetes propios dentro de los `MINUTOS_ANULACION`
+ * minutos posteriores a la venta, mientras que un ADMIN puede anular cualquier
+ * tiquete. No se permite anular tiquetes de sorteos ya jugados y el motivo es
+ * obligatorio.
+ * @param {string} codigo - Codigo unico del tiquete.
+ * @param {{ id: number, rol: string }} usuario - Usuario que solicita la anulacion.
+ * @param {string} motivo - Motivo de la anulacion.
+ * @returns {object} Tiquete actualizado en estado ANULADO con los datos de la anulacion.
+ * @throws {AppError} Codigo 404 si el tiquete no existe.
+ * @throws {AppError} Codigo 403 si el vendedor intenta anular un tiquete ajeno.
+ * @throws {AppError} Codigo 400 si no se indica el motivo.
+ * @throws {AppError} Codigo 409 si el tiquete no esta ACTIVO, el sorteo ya fue jugado o se supero el tiempo permitido.
+ */
 function anular(codigo, usuario, motivo) {
   const ticket = buscar(codigo);
 
@@ -108,6 +165,19 @@ function anular(codigo, usuario, motivo) {
   return ticket;
 }
 
+/**
+ * @function pagarPremio
+ * @description Registra el pago del premio de un tiquete ganador. Exige que el
+ * sorteo este JUGADO, que el tiquete siga ACTIVO, que tenga premio y que no haya
+ * superado los `DIAS_CADUCIDAD_PREMIO` dias desde la fecha de juego. El pago se
+ * registra una sola vez y el tiquete pasa a estado PAGADO.
+ * @param {string} codigo - Codigo unico del tiquete.
+ * @param {{ id: number, rol: string }} usuario - Vendedor que registra el pago.
+ * @returns {{ id: number, ticketId: number, codigo: string, usuarioId: number, valor: number, fecha: string }} Pago registrado.
+ * @throws {AppError} Codigo 404 si el tiquete no existe.
+ * @throws {AppError} Codigo 409 si el sorteo no se ha jugado, el premio ya fue pagado, el tiquete no esta ACTIVO o no tiene premio.
+ * @throws {AppError} Codigo 410 si el premio esta caducado.
+ */
 function pagarPremio(codigo, usuario) {
   const ticket = buscar(codigo);
   const sorteo = sorteos.obtener(ticket.sorteoId);

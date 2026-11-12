@@ -17,6 +17,15 @@ function obtener(id) {
   return sorteo;
 }
 
+/**
+ * @function crear
+ * @description Crea un nuevo sorteo de tipo CHANCE o BALOTO en estado ABIERTO.
+ * Valida el tipo, el nombre, que la fecha sea parseable y futura, y registra el
+ * acumulado solo para sorteos de Baloto.
+ * @param {{ tipo: 'CHANCE'|'BALOTO', nombre: string, fecha: string, acumulado?: number }} datos - Datos del sorteo recibidos en la peticion.
+ * @returns {{ id: number, tipo: string, nombre: string, fecha: string, estado: string, resultado: null, acumulado: number }} Sorteo creado.
+ * @throws {AppError} Codigo 400 si el tipo es invalido, falta el nombre, la fecha es invalida o no es futura.
+ */
 function crear({ tipo, nombre, fecha, acumulado = 0 }) {
   if (!TIPOS.includes(tipo)) throw new AppError('Tipo de sorteo inválido');
   if (!nombre) throw new AppError('El nombre es obligatorio');
@@ -36,6 +45,17 @@ function crear({ tipo, nombre, fecha, acumulado = 0 }) {
   return sorteo;
 }
 
+/**
+ * @function verificarVentaPermitida
+ * @description Determina si un sorteo admite ventas en el momento actual. Verifica
+ * que el tipo coincida con el producto que se desea vender, que el sorteo este
+ * ABIERTO y que falten mas minutos que `MINUTOS_CIERRE_VENTAS` para la fecha del sorteo.
+ * @param {{ tipo: string, estado: string, fecha: string }} sorteo - Sorteo sobre el que se quiere vender.
+ * @param {'CHANCE'|'BALOTO'} tipoEsperado - Tipo de producto que se esta vendiendo.
+ * @returns {void}
+ * @throws {AppError} Codigo 400 si el sorteo no es del tipo esperado.
+ * @throws {AppError} Codigo 409 si el sorteo no esta abierto o las ventas ya cerraron.
+ */
 function verificarVentaPermitida(sorteo, tipoEsperado) {
   if (sorteo.tipo !== tipoEsperado) throw new AppError(`El sorteo no es de tipo ${tipoEsperado}`);
   if (sorteo.estado !== 'ABIERTO') throw new AppError('El sorteo no está abierto para ventas', 409);
@@ -44,6 +64,18 @@ function verificarVentaPermitida(sorteo, tipoEsperado) {
   }
 }
 
+/**
+ * @function registrarResultado
+ * @description Registra el resultado oficial de un sorteo, lo marca como JUGADO y
+ * liquida automaticamente todos los tiquetes ACTIVOS asociados, calculando el
+ * premio de cada apuesta o jugada segun las reglas de chance o Baloto.
+ * @param {number|string} id - Identificador del sorteo.
+ * @param {string|{ numeros: number[], superbalota: number }} resultado - Resultado de 4 digitos para CHANCE o jugada ganadora para BALOTO.
+ * @returns {{ id: number, tipo: string, nombre: string, fecha: string, estado: string, resultado: (string|{ numeros: number[], superbalota: number }), acumulado: number, jugadoEn: string }} Sorteo actualizado.
+ * @throws {AppError} Codigo 404 si el sorteo no existe.
+ * @throws {AppError} Codigo 409 si el sorteo ya tiene resultado.
+ * @throws {AppError} Codigo 400 si el resultado no cumple las reglas del tipo de sorteo.
+ */
 function registrarResultado(id, resultado) {
   const sorteo = obtener(id);
   if (sorteo.estado === 'JUGADO') throw new AppError('El sorteo ya tiene resultado', 409);

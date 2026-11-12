@@ -19,6 +19,12 @@ function aleatorioEntre(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+/**
+ * @function generarAleatoria
+ * @description Genera una jugada aleatoria de Baloto: 5 numeros unicos entre 1 y 43,
+ * ordenados de menor a mayor, y una superbalota entre 1 y 16.
+ * @returns {{ numeros: number[], superbalota: number }} Jugada generada lista para ser vendida.
+ */
 function generarAleatoria() {
   const numeros = new Set();
   while (numeros.size < 5) numeros.add(aleatorioEntre(1, MAX_NUMERO));
@@ -28,6 +34,16 @@ function generarAleatoria() {
   };
 }
 
+/**
+ * @function validarJugada
+ * @description Valida y normaliza una jugada de Baloto. Si la jugada solicita el
+ * modo aleatorio (`aleatoria: true`) genera los numeros automaticamente; de lo
+ * contrario, exige exactamente 5 numeros enteros unicos entre 1 y 43 y una
+ * superbalota entre 1 y 16. Los numeros se retornan ordenados.
+ * @param {{ aleatoria?: boolean, numeros?: number[], superbalota?: number }} [jugada] - Jugada recibida en el cuerpo de la peticion.
+ * @returns {{ numeros: number[], superbalota: number }} Jugada validada con numeros ordenados ascendentemente.
+ * @throws {AppError} Codigo 400 si la jugada no tiene 5 numeros, hay repetidos, alguno esta fuera de rango o la superbalota es invalida.
+ */
 function validarJugada(jugada) {
   if (jugada && jugada.aleatoria === true) return generarAleatoria();
 
@@ -47,6 +63,16 @@ function validarJugada(jugada) {
   return { numeros: [...numeros].sort((a, b) => a - b), superbalota };
 }
 
+/**
+ * @function calcularPremio
+ * @description Calcula el premio de una jugada de Baloto contando los aciertos de
+ * numeros y la superbalota, y consultando la tabla de premios. El acierto 5+1
+ * otorga el acumulado del sorteo.
+ * @param {{ numeros: number[], superbalota: number }} jugada - Jugada validada del tiquete.
+ * @param {{ numeros: number[], superbalota: number }} resultado - Resultado oficial del sorteo.
+ * @param {number} [acumulado=0] - Valor acumulado vigente para el premio mayor.
+ * @returns {number} Valor del premio en pesos colombianos; `0` si la jugada no gana.
+ */
 function calcularPremio(jugada, resultado, acumulado = 0) {
   const aciertos = jugada.numeros.filter((n) => resultado.numeros.includes(n)).length;
   const sb = jugada.superbalota === resultado.superbalota ? 1 : 0;
