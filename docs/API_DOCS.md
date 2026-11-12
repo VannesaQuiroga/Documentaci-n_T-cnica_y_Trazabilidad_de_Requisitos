@@ -1,8 +1,9 @@
 # API Docs - Puesto de Chance API
 
 Documentación de referencia de la API REST del sistema de puesto de chance y Baloto.
-El proyecto **no incluye Swagger/OpenAPI**; esta guía documenta manualmente todos los
-endpoints expuestos en `src/routes/index.js`.
+Esta guía complementa la **documentación interactiva Swagger UI** disponible en
+`http://localhost:3000/api-docs`, generada a partir del esquema OpenAPI 3.0 en
+`src/docs/openapi.js` (JSON en `http://localhost:3000/api-docs.json`).
 
 ---
 

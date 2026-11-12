@@ -86,5 +86,5 @@ Evidencia de ejecución: `npm test` → **5 suites, 20 pruebas, 20 aprobadas** (
 | GAP-03 | Caducidad de premio (`410`) sin prueba automatizada | Medio | Simular `sorteo.jugadoEn` antiguo y verificar `410` |
 | GAP-04 | Sin prueba del endpoint `/health` ni del formato de errores globales | Bajo | Agregar pruebas de humo y de JSON mal formado |
 | GAP-05 | Persistencia solo en memoria: los datos se pierden al reiniciar | Alto (producción) | Integrar base de datos persistente (por ejemplo, PostgreSQL) |
-| GAP-06 | No existe definición OpenAPI/Swagger automatizada | Medio | Adoptar `swagger-ui-express` + esquema OpenAPI 3.0 |
+| GAP-06 | El esquema OpenAPI 3.0 se mantiene manualmente y debe sincronizarse con las rutas | Bajo | Validar el esquema al agregar o modificar endpoints |
 | GAP-07 | Credenciales de demostración embebidas en el código (`store.js`) | Alto (producción) | Mover usuarios semilla a variables de entorno o base de datos |

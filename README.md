@@ -3,6 +3,7 @@
 ![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-4.x-000000?logo=express&logoColor=white)
 ![Jest](https://img.shields.io/badge/Jest-29.x-C21325?logo=jest&logoColor=white)
+![Swagger](https://img.shields.io/badge/OpenAPI-3.0-85EA2D?logo=swagger&logoColor=black)
 ![License](https://img.shields.io/badge/License-Privada-lightgrey)
 ![Quality Gate](https://img.shields.io/badge/Quality%20Gate-20%2F20%20tests%20passing-brightgreen)
 
@@ -117,8 +118,9 @@ pnpm start
 # o: npm start
 ```
 
-El servidor queda disponible en `http://localhost:3000` y el health check en
-`http://localhost:3000/health`.
+El servidor queda disponible en `http://localhost:3000`, el health check en
+`http://localhost:3000/health` y la documentación interactiva (Swagger UI) en
+`http://localhost:3000/api-docs`. La raíz `/` redirige automáticamente a Swagger.
 
 ```json
 {
@@ -126,6 +128,9 @@ El servidor queda disponible en `http://localhost:3000` y el health check en
   "hora": "2026-11-12T19:00:00.000Z"
 }
 ```
+
+El esquema OpenAPI 3.0 también está disponible en formato JSON en
+`http://localhost:3000/api-docs.json`.
 
 ---
 
@@ -144,6 +149,7 @@ documentacionApi/
 │   ├── routes/index.js           # Definición de todos los endpoints
 │   ├── services/                 # Lógica de negocio (auth, chance, baloto, tickets, caja, sorteos)
 │   ├── data/store.js             # Almacén en memoria y datos semilla
+│   ├── docs/openapi.js           # Esquema OpenAPI 3.0 servido en /api-docs
 │   └── utils/                    # AppError y utilidades de fechas
 ├── tests/                        # Pruebas con Jest + Supertest
 ├── .env.example
@@ -181,6 +187,7 @@ URL base: `http://localhost:3000/api/v1`
 | Verbo | Ruta | Rol | Descripción |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/health` | Público | Estado del servicio |
+| `GET` | `/api-docs` | Público | Documentación interactiva (Swagger UI) |
 | `POST` | `/auth/login` | Público | Inicio de sesión y emisión de JWT |
 | `GET` | `/auth/perfil` | Autenticado | Perfil del usuario autenticado |
 | `GET` | `/sorteos` | Autenticado | Lista sorteos (filtros `tipo`, `estado`) |
@@ -288,6 +295,7 @@ Copia de la matriz formal. La versión maestra y el detalle de brechas están en
 
 | Documento | Contenido |
 | :--- | :--- |
+| `http://localhost:3000/api-docs` | Documentación interactiva Swagger UI (OpenAPI 3.0) |
 | [`docs/API_DOCS.md`](docs/API_DOCS.md) | Referencia completa de endpoints, cuerpos, respuestas y errores |
 | [`docs/MATRIZ_TRAZABILIDAD.md`](docs/MATRIZ_TRAZABILIDAD.md) | RTM, requerimientos funcionales, evidencia de pruebas y plan de QA |
 | `.env.example` | Plantilla de variables de entorno |
